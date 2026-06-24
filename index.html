@@ -22,12 +22,29 @@ h1{
   color:#ff6b6b;
   margin:0 0 12px;
 }
-.top,.nav{
+.top{
   display:flex;
   gap:12px;
   justify-content:center;
-  align-items:center;
   margin:12px 0;
+}
+.tabs{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:8px 0 14px;
+}
+.tab{
+  flex:0 0 auto;
+  background:#dee2e6;
+  color:#222;
+  box-shadow:none;
+  border:3px solid #555;
+}
+.tab.active{
+  background:#4dabf7;
+  color:white;
+  border-color:#1864ab;
 }
 button{
   border:0;
@@ -135,12 +152,6 @@ h2{
   font-weight:bold;
   margin-top:6px;
 }
-.page{
-  text-align:center;
-  font-size:24px;
-  font-weight:bold;
-  min-width:90px;
-}
 </style>
 </head>
 <body>
@@ -152,11 +163,7 @@ h2{
     <button class="delete" onclick="deletePerson()">この人を消す</button>
   </div>
 
-  <div class="nav">
-    <button onclick="prevPerson()">前へ</button>
-    <div class="page" id="page"></div>
-    <button onclick="nextPerson()">次へ</button>
-  </div>
+  <div class="tabs" id="tabs"></div>
 
   <div id="area"></div>
 </div>
@@ -170,6 +177,7 @@ function yen(n){
 }
 
 function addPerson(){
+  saveInputs();
   people.push({
     name: people.length + 1 + "人目",
     budget: 1000,
@@ -188,20 +196,10 @@ function deletePerson(){
   }
 }
 
-function prevPerson(){
+function switchPerson(index){
   saveInputs();
-  if(current > 0){
-    current--;
-    renderCard();
-  }
-}
-
-function nextPerson(){
-  saveInputs();
-  if(current < people.length - 1){
-    current++;
-    renderCard();
-  }
+  current = index;
+  renderCard();
 }
 
 function addItem(){
@@ -218,6 +216,7 @@ function deleteItem(i){
 
 function saveInputs(){
   const p = people[current];
+  if(!p) return;
 
   const name = document.getElementById("name");
   const budget = document.getElementById("budget");
@@ -237,14 +236,26 @@ function saveInputs(){
 
 function updateOnly(){
   saveInputs();
+  renderTabs();
   updateResult();
+}
+
+function renderTabs(){
+  let html = "";
+  people.forEach((p,i)=>{
+    html += `
+      <button class="tab ${i === current ? "active" : ""}" onclick="switchPerson(${i})">
+        ${escapeHtml(p.name || (i + 1) + "人目")}
+      </button>
+    `;
+  });
+  document.getElementById("tabs").innerHTML = html;
 }
 
 function renderCard(){
   const p = people[current];
 
-  document.getElementById("page").textContent =
-    (current + 1) + " / " + people.length;
+  renderTabs();
 
   let itemsHtml = "";
   p.items.forEach((item,i)=>{
