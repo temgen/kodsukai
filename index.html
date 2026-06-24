@@ -2,9 +2,13 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>おこづかい管理</title>
 <style>
+*{
+  box-sizing:border-box;
+  touch-action:manipulation;
+}
 body{
   margin:0;
   font-family:"Hiragino Sans","Yu Gothic",sans-serif;
@@ -15,6 +19,7 @@ body{
   padding:18px;
   max-width:900px;
   margin:auto;
+  overflow-x:hidden;
 }
 h1{
   text-align:center;
@@ -34,18 +39,6 @@ h1{
   overflow-x:auto;
   padding:8px 0 14px;
 }
-.tab{
-  flex:0 0 auto;
-  background:#dee2e6;
-  color:#222;
-  box-shadow:none;
-  border:3px solid #555;
-}
-.tab.active{
-  background:#4dabf7;
-  color:white;
-  border-color:#1864ab;
-}
 button{
   border:0;
   border-radius:16px;
@@ -56,11 +49,23 @@ button{
   color:white;
 }
 .delete{background:#ff6b6b}
+.tab{
+  flex:0 0 auto;
+  background:#dee2e6;
+  color:#222;
+  border:3px solid #555;
+}
+.tab.active{
+  background:#4dabf7;
+  color:white;
+  border-color:#1864ab;
+}
 .card{
   background:white;
   border:5px solid #333;
   border-radius:24px;
   padding:18px;
+  overflow:hidden;
 }
 .card.safe{border-color:#37b24d}
 .card.warn{border-color:#f59f00}
@@ -109,14 +114,20 @@ h2{
   text-align:center;
   margin-top:18px;
 }
+.graph-area{
+  width:100%;
+  overflow:visible;
+  padding-right:0;
+}
 .graph{
   position:relative;
   height:56px;
   border:4px solid #333;
   border-radius:28px;
-  background:#e9ecef;
-  overflow:hidden;
+  background:transparent;
+  overflow:visible;
   margin-top:10px;
+  width:100%;
 }
 .budget-bar{
   position:absolute;
@@ -125,6 +136,8 @@ h2{
   height:100%;
   width:100%;
   background:#74c0fc;
+  border-radius:24px;
+  z-index:1;
 }
 .used-bar{
   position:absolute;
@@ -135,6 +148,18 @@ h2{
   background:#ff6b6b;
   border-radius:20px;
   transition:.15s;
+  z-index:2;
+}
+.graph-frame{
+  position:absolute;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  border:4px solid #333;
+  border-radius:28px;
+  pointer-events:none;
+  z-index:3;
 }
 .graph-text{
   position:absolute;
@@ -143,7 +168,7 @@ h2{
   line-height:56px;
   font-size:24px;
   font-weight:bold;
-  z-index:2;
+  z-index:4;
 }
 .scale{
   display:flex;
@@ -164,7 +189,6 @@ h2{
   </div>
 
   <div class="tabs" id="tabs"></div>
-
   <div id="area"></div>
 </div>
 
@@ -297,10 +321,13 @@ function renderCard(){
         <span id="budgetLabel"></span>
       </div>
 
-      <div class="graph">
-        <div class="budget-bar"></div>
-        <div class="used-bar" id="usedBar"></div>
-        <div class="graph-text" id="graphText"></div>
+      <div class="graph-area">
+        <div class="graph">
+          <div class="budget-bar"></div>
+          <div class="used-bar" id="usedBar"></div>
+          <div class="graph-frame"></div>
+          <div class="graph-text" id="graphText"></div>
+        </div>
       </div>
     </div>
   `;
@@ -344,7 +371,6 @@ function updateResult(){
 
   result.textContent = message;
   result.style.color = color;
-
   totalBox.textContent = "使う予定：" + yen(total);
   remainBox.textContent =
     remain >= 0 ? "のこり：" + yen(remain) : "たりない：" + yen(Math.abs(remain));
@@ -352,7 +378,7 @@ function updateResult(){
   budgetLabel.textContent = "予算 " + yen(p.budget);
 
   let percent = p.budget > 0 ? total / p.budget * 100 : 0;
-  usedBar.style.width = Math.min(percent,120) + "%";
+  usedBar.style.width = percent + "%";
   graphText.textContent = yen(total);
 }
 
