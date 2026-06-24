@@ -11,11 +11,22 @@ body{
   background:linear-gradient(135deg,#fff3b0,#c9f7ff,#ffd6e7);
   color:#222;
 }
-.wrap{padding:20px}
+.wrap{
+  padding:18px;
+  max-width:900px;
+  margin:auto;
+}
 h1{
   text-align:center;
   font-size:38px;
   color:#ff6b6b;
+  margin:0 0 12px;
+}
+.top,.nav{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  margin:12px 0;
 }
 button{
   border:0;
@@ -27,22 +38,11 @@ button{
   color:white;
 }
 .delete{background:#ff6b6b}
-.top{
-  display:flex;
-  gap:12px;
-  justify-content:center;
-  margin-bottom:16px;
-}
-.people{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
-  gap:16px;
-}
 .card{
   background:white;
-  border:4px solid #333;
-  border-radius:22px;
-  padding:16px;
+  border:5px solid #333;
+  border-radius:24px;
+  padding:18px;
 }
 .safe{border-color:#37b24d}
 .warn{border-color:#f59f00}
@@ -52,49 +52,89 @@ button{
 }
 .row{
   display:flex;
-  gap:8px;
+  gap:10px;
   align-items:center;
-  margin-bottom:10px;
+  margin-bottom:12px;
 }
 label{
-  font-size:22px;
+  font-size:24px;
   font-weight:bold;
+  white-space:nowrap;
 }
 input{
   width:100%;
-  font-size:24px;
-  padding:8px;
+  font-size:26px;
+  padding:10px;
   border:3px solid #aaa;
-  border-radius:10px;
+  border-radius:12px;
 }
 input[type=number]{text-align:right}
 .result{
-  font-size:30px;
+  font-size:42px;
   font-weight:bold;
   text-align:center;
-  margin:12px 0;
+  margin:18px 0 8px;
 }
 .money{
-  font-size:24px;
+  font-size:28px;
   font-weight:bold;
+  text-align:center;
   line-height:1.7;
 }
-.barbox{
-  height:34px;
-  border:3px solid #333;
-  border-radius:20px;
-  background:#eee;
+.graph-title{
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+  margin-top:18px;
+}
+.graph{
+  position:relative;
+  height:56px;
+  border:4px solid #333;
+  border-radius:28px;
+  background:#e9ecef;
   overflow:hidden;
-  margin-bottom:10px;
+  margin-top:10px;
 }
-.bar{
+.budget-bar{
+  position:absolute;
+  left:0;
+  top:0;
   height:100%;
-  width:0%;
+  width:100%;
+  background:#74c0fc;
 }
-.budget{background:#74c0fc}
-.used.safebar{background:#51cf66}
-.used.warnbar{background:#ffd43b}
-.used.badbar{background:#ff6b6b}
+.used-bar{
+  position:absolute;
+  left:0;
+  top:8px;
+  height:40px;
+  width:0%;
+  background:#ff6b6b;
+  border-radius:20px;
+  transition:.3s;
+}
+.graph-text{
+  position:absolute;
+  width:100%;
+  text-align:center;
+  line-height:56px;
+  font-size:24px;
+  font-weight:bold;
+  z-index:2;
+}
+.scale{
+  display:flex;
+  justify-content:space-between;
+  font-size:22px;
+  font-weight:bold;
+  margin-top:6px;
+}
+.page{
+  text-align:center;
+  font-size:24px;
+  font-weight:bold;
+}
 </style>
 </head>
 <body>
@@ -103,139 +143,161 @@ input[type=number]{text-align:right}
 
   <div class="top">
     <button onclick="addPerson()">人を追加</button>
-    <button class="delete" onclick="resetAll()">全部リセット</button>
+    <button class="delete" onclick="deletePerson()">この人を消す</button>
   </div>
 
-  <div id="people" class="people"></div>
+  <div class="nav">
+    <button onclick="prevPerson()">前へ</button>
+    <div class="page" id="page"></div>
+    <button onclick="nextPerson()">次へ</button>
+  </div>
+
+  <div id="area"></div>
 </div>
 
 <script>
-let count = 0;
+let people = [];
+let current = 0;
 
 function yen(n){
   return Number(n || 0).toLocaleString() + "円";
 }
 
 function addPerson(){
-  count++;
-  const card = document.createElement("div");
-  card.className = "card";
-
-  card.innerHTML = `
-    <div class="row">
-      <label>名前</label>
-      <input value="${count}人目" oninput="update(this)">
-    </div>
-
-    <div class="row">
-      <label>予算</label>
-      <input type="number" value="1000" oninput="update(this)">
-      <label>円</label>
-    </div>
-
-    <div class="items">
-      <div class="row item">
-        <input placeholder="買いたい物" value="おかし" oninput="update(this)">
-        <input type="number" value="100" oninput="update(this)">
-        <label>円</label>
-        <button class="delete" onclick="deleteItem(this)">消す</button>
-      </div>
-    </div>
-
-    <button onclick="addItem(this)">買いたい物を追加</button>
-    <button class="delete" onclick="this.closest('.card').remove()">この人を消す</button>
-
-    <div class="result"></div>
-    <div class="money total"></div>
-    <div class="money remain"></div>
-
-    <div class="money">予算</div>
-    <div class="barbox"><div class="bar budget"></div></div>
-
-    <div class="money">使う予定</div>
-    <div class="barbox"><div class="bar used"></div></div>
-  `;
-
-  document.getElementById("people").appendChild(card);
-  updateCard(card);
-}
-
-function addItem(btn){
-  const card = btn.closest(".card");
-  const items = card.querySelector(".items");
-  const row = document.createElement("div");
-  row.className = "row item";
-  row.innerHTML = `
-    <input placeholder="買いたい物" oninput="update(this)">
-    <input type="number" value="0" oninput="update(this)">
-    <label>円</label>
-    <button class="delete" onclick="deleteItem(this)">消す</button>
-  `;
-  items.appendChild(row);
-  updateCard(card);
-}
-
-function deleteItem(btn){
-  const card = btn.closest(".card");
-  btn.closest(".item").remove();
-  updateCard(card);
-}
-
-function update(el){
-  updateCard(el.closest(".card"));
-}
-
-function updateCard(card){
-  const budget = Number(card.querySelector("input[type=number]").value || 0);
-  let total = 0;
-
-  card.querySelectorAll(".item").forEach(row=>{
-    total += Number(row.querySelector("input[type=number]").value || 0);
+  people.push({
+    name: people.length + 1 + "人目",
+    budget: 1000,
+    items:[{name:"おかし", price:100}]
   });
+  current = people.length - 1;
+  render();
+}
 
-  const remain = budget - total;
-  const max = Math.max(budget,total,1);
+function deletePerson(){
+  if(people.length <= 1) return;
+  if(confirm("この人を消しますか？")){
+    people.splice(current,1);
+    if(current >= people.length) current = people.length - 1;
+    render();
+  }
+}
 
-  card.className = "card";
-  const result = card.querySelector(".result");
-  const used = card.querySelector(".used");
-  used.className = "bar used";
+function prevPerson(){
+  if(current > 0){
+    current--;
+    render();
+  }
+}
+
+function nextPerson(){
+  if(current < people.length - 1){
+    current++;
+    render();
+  }
+}
+
+function addItem(){
+  people[current].items.push({name:"",price:0});
+  render();
+}
+
+function deleteItem(i){
+  people[current].items.splice(i,1);
+  render();
+}
+
+function saveInput(){
+  const p = people[current];
+  p.name = document.getElementById("name").value;
+  p.budget = Number(document.getElementById("budget").value || 0);
+
+  p.items.forEach((item,i)=>{
+    item.name = document.getElementById("itemName"+i).value;
+    item.price = Number(document.getElementById("itemPrice"+i).value || 0);
+  });
+}
+
+function update(){
+  saveInput();
+  render();
+}
+
+function render(){
+  const p = people[current];
+  document.getElementById("page").textContent =
+    (current + 1) + " / " + people.length;
+
+  let total = p.items.reduce((sum,item)=>sum + Number(item.price || 0),0);
+  let remain = p.budget - total;
+
+  let state = "safe";
+  let message = "かえます ○";
+  let color = "#2b8a3e";
 
   if(remain < 0){
-    card.classList.add("bad");
-    result.textContent = "赤字です";
-    result.style.color = "#c92a2a";
-    used.classList.add("badbar");
-  }else if(remain <= budget * 0.2){
-    card.classList.add("warn");
-    result.textContent = "あと少し";
-    result.style.color = "#e67700";
-    used.classList.add("warnbar");
-  }else{
-    card.classList.add("safe");
-    result.textContent = "だいじょうぶ";
-    result.style.color = "#2b8a3e";
-    used.classList.add("safebar");
+    state = "bad";
+    message = "かえません ❌";
+    color = "#c92a2a";
+  }else if(remain <= p.budget * 0.2){
+    state = "warn";
+    message = "あと少し！";
+    color = "#e67700";
   }
 
-  card.querySelector(".total").textContent = "使う予定：" + yen(total);
-  card.querySelector(".remain").textContent =
-    remain >= 0 ? "のこり：" + yen(remain) : "たりない：" + yen(Math.abs(remain));
+  let percent = p.budget > 0 ? total / p.budget * 100 : 0;
+  let barWidth = Math.min(percent,120);
 
-  card.querySelector(".budget").style.width = budget / max * 100 + "%";
-  used.style.width = total / max * 100 + "%";
+  let itemsHtml = "";
+  p.items.forEach((item,i)=>{
+    itemsHtml += `
+      <div class="row">
+        <input id="itemName${i}" value="${item.name}" placeholder="買いたい物" oninput="update()">
+        <input id="itemPrice${i}" type="number" value="${item.price}" oninput="update()">
+        <label>円</label>
+        <button class="delete" onclick="deleteItem(${i})">消す</button>
+      </div>
+    `;
+  });
+
+  document.getElementById("area").innerHTML = `
+    <div class="card ${state}">
+      <div class="row">
+        <label>名前</label>
+        <input id="name" value="${p.name}" oninput="update()">
+      </div>
+
+      <div class="row">
+        <label>予算</label>
+        <input id="budget" type="number" value="${p.budget}" oninput="update()">
+        <label>円</label>
+      </div>
+
+      <h2>買いたい物</h2>
+      ${itemsHtml}
+
+      <button onclick="addItem()">買いたい物を追加</button>
+
+      <div class="result" style="color:${color}">${message}</div>
+      <div class="money">使う予定：${yen(total)}</div>
+      <div class="money">
+        ${remain >= 0 ? "のこり：" + yen(remain) : "たりない：" + yen(Math.abs(remain))}
+      </div>
+
+      <div class="graph-title">予算と使う予定</div>
+      <div class="scale">
+        <span>0円</span>
+        <span>予算 ${yen(p.budget)}</span>
+      </div>
+
+      <div class="graph">
+        <div class="budget-bar"></div>
+        <div class="used-bar" style="width:${barWidth}%"></div>
+        <div class="graph-text">${yen(total)}</div>
+      </div>
+    </div>
+  `;
 }
 
-function resetAll(){
-  if(confirm("全部消しますか？")){
-    document.getElementById("people").innerHTML = "";
-    count = 0;
-    addPerson();
-  }
-}
-
-addPerson();
-addPerson();
 addPerson();
 </script>
 </body>
